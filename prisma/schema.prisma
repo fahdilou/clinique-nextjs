@@ -1,0 +1,103 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Utilisateur {
+  id           Int     @id @default(autoincrement())
+  nom          String  @db.VarChar(100)
+  email        String  @unique @db.VarChar(100)
+  mot_de_passe String  @db.VarChar(256)
+  role         String  @default("caissier") @db.VarChar(50)
+  actif        Int?    @default(1)
+  permissions  String? @db.VarChar(500)
+
+  @@map("utilisateurs")
+}
+
+model Produit {
+  id             Int     @id @default(autoincrement())
+  code_article   String  @unique @db.VarChar(50)
+  designation    String  @db.VarChar(200)
+  prix_unitaire  Float?  @default(0)
+  unite          String? @default("unité") @db.VarChar(50)
+  stock_initial  Int?    @default(0)
+  seuil_alerte   Int?    @default(5)
+  actif          Int?    @default(1)
+
+  mouvements MouvementStock[]
+
+  @@map("produits")
+}
+
+model MouvementStock {
+  id             Int      @id @default(autoincrement())
+  date_mouvement DateTime @db.Date
+  produit_id     Int?
+  type_mouvement String   @db.VarChar(10) // 'entree' | 'sortie'
+  quantite       Int
+  motif          String?  @db.VarChar(255)
+  user_nom       String?  @db.VarChar(100)
+
+  produit Produit? @relation(fields: [produit_id], references: [id])
+
+  @@index([date_mouvement])
+  @@index([produit_id])
+  @@index([type_mouvement])
+  @@map("mouvements_stock")
+}
+
+model Assurance {
+  id    Int     @id @default(autoincrement())
+  nom   String  @unique @db.VarChar(100)
+  email String? @db.VarChar(100)
+
+  factures Facture[]
+
+  @@map("assurances")
+}
+
+model Facture {
+  id                      Int       @id @default(autoincrement())
+  date_facture            DateTime  @db.Date
+  num_facture             String    @unique @db.VarChar(50)
+  montant_total           Float
+  assurance_id            Int?
+  part_assureur           Float?    @default(0)
+  part_assureur_payee     Float?    @default(0)
+  part_assure             Float?    @default(0)
+  statut_part_assure      String?   @default("Payée par Caisse") @db.VarChar(50)
+  statut_part_assureur    String?   @default("En attente") @db.VarChar(50)
+  date_depot              DateTime? @db.Date
+  motif_ecart_assurance   String?   @db.VarChar(255)
+
+  assurance Assurance? @relation(fields: [assurance_id], references: [id])
+
+  @@index([date_facture])
+  @@index([assurance_id])
+  @@index([statut_part_assureur])
+  @@index([date_depot])
+  @@map("factures")
+}
+
+model Depense {
+  id            Int      @id @default(autoincrement())
+  date_depense  DateTime @db.Date
+  categorie     String   @db.VarChar(100)
+  description   String?  @db.VarChar(255)
+  montant       Float
+  num_facture   String?  @db.VarChar(100)
+  mode_paiement String?  @default("Espèces") @db.VarChar(50)
+  beneficiaire  String?  @db.VarChar(150)
+  user_nom      String?  @db.VarChar(100)
+
+  @@index([date_depense])
+  @@index([categorie])
+  @@map("depenses")
+}
