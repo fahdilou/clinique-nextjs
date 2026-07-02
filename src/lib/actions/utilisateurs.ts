@@ -3,7 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase/admin";
-import { PERMISSIONS_PAR_ROLE, TOUTES_PERMISSIONS, type Role, type Permission } from "@/lib/permissions";
+import { PERMISSIONS_PAR_ROLE, ROLES, TOUTES_PERMISSIONS, type Role, type Permission } from "@/lib/permissions";
 import { revalidatePath } from "next/cache";
 
 async function requireAdmin() {
@@ -51,7 +51,8 @@ export async function resetPermissionsRole(id: number) {
   await requireAdmin();
   const u = await prisma.utilisateur.findUnique({ where: { id } });
   if (!u) throw new Error("Utilisateur introuvable");
-  const perms = PERMISSIONS_PAR_ROLE[(u.role as any) ?? "caissier"] ?? [];
+  const role = (ROLES as readonly string[]).includes(u.role) ? (u.role as Role) : "caissier";
+  const perms = PERMISSIONS_PAR_ROLE[role];
   await prisma.utilisateur.update({
     where: { id },
     data: { permissions: JSON.stringify(perms) },
