@@ -9,7 +9,7 @@ import {
   FileText, Wallet, Receipt, TrendingDown, AlertTriangle, Package,
   TrendingUp, PiggyBank,
 } from "lucide-react";
-import { MonthlyRevenueChart, ExpensesByCategoryChart, InsuranceDebtChart } from "./charts";
+import { MonthlyRevenueChart, ExpensesByCategoryChart, InsuranceDebtChart } from "./charts-wrapper";
 
 export default async function DashboardPage() {
   const user = await requireUser();
