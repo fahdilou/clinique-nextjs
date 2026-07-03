@@ -114,7 +114,7 @@ export function Sidebar({ userName, userRole }: { userName: string; userRole: st
 
           const isExpanded = expandedMobile === menu.label;
           return (
-            <div key={menu.label} className="md:relative md:group">
+            <div key={menu.label} className="relative group">
               {/* Mobile: click to expand inline */}
               <button
                 className={cn(
