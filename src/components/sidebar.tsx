@@ -203,18 +203,22 @@ export function Sidebar({ userName, userRole }: { userName: string; userRole: st
 
   return (
     <>
-      {/* Barre mobile top avec hamburger */}
-      <header className="md:hidden fixed top-0 left-0 right-0 z-30 flex items-center justify-between px-4 py-3 bg-primary text-primary-foreground shadow-sm">
+      {/* Barre mobile top avec hamburger — visible uniquement sous md */}
+      <header
+        className="md:hidden fixed top-0 inset-x-0 z-30 h-14 w-full flex items-center justify-between px-4 bg-primary text-primary-foreground shadow-md"
+        style={{ WebkitBackfaceVisibility: "hidden" }}
+      >
         <div className="flex items-center gap-2">
           <HeartPulse className="h-5 w-5" />
           <span className="font-semibold text-sm">Gestion Clinique</span>
         </div>
         <button
-          className="p-2 rounded hover:bg-white/10"
+          type="button"
+          className="p-2 rounded hover:bg-white/10 -mr-2"
           onClick={() => setMobileOpen(true)}
           aria-label="Ouvrir le menu"
         >
-          <Menu className="h-5 w-5" />
+          <Menu className="h-6 w-6" />
         </button>
       </header>
 
