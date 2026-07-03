@@ -8,6 +8,7 @@ import { Select } from "@/components/ui/select";
 import { deleteFacture, updateFacturePayment, updateFacture, resetPaiementBanque } from "@/lib/actions/factures";
 import { Trash2, Wallet, Pencil, X, Save, Undo2, Info } from "lucide-react";
 import { toISODate, formatMoney } from "@/lib/utils";
+import { DeleteConfirmDialog } from "@/components/delete-confirm-dialog";
 
 type F = {
   id: number; num_facture: string; date_facture: string; montant_total: number;
@@ -63,10 +64,6 @@ export function FactureRowActions({
     else setPartAssure(facture.part_assure); // garde la saisie originale
   };
 
-  const handleDelete = () => {
-    if (!confirm("Supprimer cette facture ?")) return;
-    start(() => deleteFacture(facture.id).catch((e) => alert(e.message)));
-  };
 
   return (
     <div className="flex items-center gap-1 justify-end">
@@ -87,7 +84,22 @@ export function FactureRowActions({
             </Button>
           )}
           <Button size="icon" variant="ghost" title="Modifier" onClick={openFullEdit}><Pencil className="h-4 w-4" /></Button>
-          <Button size="icon" variant="ghost" title="Supprimer" onClick={handleDelete} disabled={pending}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+          <DeleteConfirmDialog
+            trigger={
+              <Button size="icon" variant="ghost" title="Supprimer" asChild>
+                <span><Trash2 className="h-4 w-4 text-destructive" /></span>
+              </Button>
+            }
+            title="Supprimer cette facture"
+            description={
+              <p>
+                Cette facture va être <strong>définitivement supprimée</strong> de la base.
+                Elle ne pourra pas être récupérée.
+              </p>
+            }
+            itemLabel={`N° ${facture.num_facture} — ${formatMoney(facture.montant_total)}`}
+            onDelete={async () => { await deleteFacture(facture.id); }}
+          />
         </>
       )}
 

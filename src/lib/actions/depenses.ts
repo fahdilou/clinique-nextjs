@@ -62,6 +62,28 @@ export async function importDepenses(rows: Record<string, string>[]) {
   return { inserted, errors };
 }
 
+export async function updateDepense(id: number, formData: FormData) {
+  await requirePerm();
+  const date = String(formData.get("date_depense") || "");
+  const categorie = String(formData.get("categorie") || "");
+  const montant = Number(formData.get("montant") || 0);
+  if (!date || !categorie || !montant) throw new Error("Champs obligatoires manquants");
+
+  await prisma.depense.update({
+    where: { id },
+    data: {
+      date_depense: new Date(date),
+      categorie,
+      description: String(formData.get("description") || "") || null,
+      montant,
+      num_facture: String(formData.get("num_facture") || "") || null,
+      mode_paiement: String(formData.get("mode_paiement") || "Espèces"),
+      beneficiaire: String(formData.get("beneficiaire") || "") || null,
+    },
+  });
+  revalidatePath("/depenses");
+}
+
 export type BatchDeleteMode = { type: "annee"; annee: number } | { type: "mois"; annee: number; mois: number } | { type: "categorie"; categorie: string } | { type: "tout" };
 
 export async function batchDeleteDepenses(mode: BatchDeleteMode, confirmToken: string) {

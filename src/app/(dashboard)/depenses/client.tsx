@@ -5,10 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
-import { createDepense, deleteDepense } from "@/lib/actions/depenses";
+import { createDepense } from "@/lib/actions/depenses";
 import { CATEGORIES_DEPENSES, MODES_PAIEMENT } from "@/lib/constants";
 import { toISODate } from "@/lib/utils";
-import { Trash2 } from "lucide-react";
 
 export function DepenseForm() {
   const [pending, start] = useTransition();
@@ -44,12 +43,3 @@ export function DepenseForm() {
   );
 }
 
-export function DeleteBtn({ id }: { id: number }) {
-  const [pending, start] = useTransition();
-  return (
-    <Button size="icon" variant="ghost" disabled={pending}
-      onClick={() => { if (confirm("Supprimer ?")) start(() => deleteDepense(id)); }}>
-      <Trash2 className="h-4 w-4 text-destructive" />
-    </Button>
-  );
-}

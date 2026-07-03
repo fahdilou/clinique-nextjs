@@ -7,10 +7,11 @@ import { Pagination } from "@/components/pagination";
 import { formatMoney, formatDate } from "@/lib/utils";
 import { CATEGORIES_DEPENSES } from "@/lib/constants";
 import { hasPermission } from "@/lib/permissions";
-import { DepenseForm, DeleteBtn } from "./client";
+import { DepenseForm } from "./client";
 import { ImportDepensesButton } from "./import-button";
 import { ExportButton } from "@/components/export-button";
 import { BatchDeleteButton } from "./batch-delete";
+import { DepenseRowActions } from "./row-actions";
 
 const PAGE_SIZE = 25;
 
@@ -107,7 +108,18 @@ export default async function DepensesPage({
                   <TD>{d.beneficiaire ?? "-"}</TD>
                   <TD>{d.mode_paiement}</TD>
                   <TD className="text-right font-medium">{formatMoney(d.montant)}</TD>
-                  {canManage && <TD className="text-right"><DeleteBtn id={d.id} /></TD>}
+                  {canManage && <TD className="text-right">
+                    <DepenseRowActions depense={{
+                      id: d.id,
+                      date_depense: d.date_depense.toISOString(),
+                      categorie: d.categorie,
+                      description: d.description,
+                      montant: d.montant,
+                      num_facture: d.num_facture,
+                      mode_paiement: d.mode_paiement,
+                      beneficiaire: d.beneficiaire,
+                    }} />
+                  </TD>}
                 </TR>
               ))}
               {depenses.length === 0 && (
