@@ -1,4 +1,4 @@
-# Gestion Clinique — Next.js + Prisma + Supabase
+# Gestion Clinique — Next.js + Prisma + Supabase 
 
 Application modernisée de gestion de clinique. Remplace l'ancien projet Streamlit (Python) par une stack full-stack TypeScript.
 
