@@ -3,15 +3,21 @@ import { requireUser } from "@/lib/auth";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { formatMoney, formatDate } from "@/lib/utils";
 import { hasPermission } from "@/lib/permissions";
 import { redirect } from "next/navigation";
 import { FileText, Mail, Printer } from "lucide-react";
 import Link from "next/link";
 
-export default async function RelancesPage() {
+export default async function RelancesPage({
+  searchParams,
+}: { searchParams: Promise<{ cie?: string }> }) {
   const user = await requireUser();
   if (!hasPermission(user.role, user.permissions, "voir_finances") && user.role !== "admin") redirect("/dashboard");
+
+  const sp = await searchParams;
+  const selectedId = sp.cie ? Number(sp.cie) : null;
 
   const now = new Date();
   const limit30j = new Date(now.getTime() - 30 * 86400_000);
@@ -29,7 +35,7 @@ export default async function RelancesPage() {
 
   const byAssurance = new Map<number, { assurance: { id: number; nom: string; email: string | null }; factures: typeof enRetard; total: number }>();
   enRetard.forEach((f) => {
-    if (!f.assurance) return;
+    if (!f.assurance || f.assurance.nom === "SANS ASSURANCE") return;
     const key = f.assurance.id;
     if (!byAssurance.has(key)) byAssurance.set(key, { assurance: f.assurance, factures: [], total: 0 });
     const e = byAssurance.get(key)!;
@@ -38,6 +44,9 @@ export default async function RelancesPage() {
   });
 
   const groups = [...byAssurance.values()].sort((a, b) => b.total - a.total);
+  const selectedGroup = selectedId ? groups.find((g) => g.assurance.id === selectedId) : null;
+  const totalAll = groups.reduce((s, g) => s + g.total, 0);
+  const totalFactures = groups.reduce((s, g) => s + g.factures.length, 0);
 
   return (
     <div className="space-y-6">
@@ -47,22 +56,60 @@ export default async function RelancesPage() {
           <p className="text-muted-foreground">Factures en retard (&gt; 30 jours) — générer des lettres de relance</p>
         </div>
         {groups.length > 0 && (
-          <Button asChild variant="default"><Link href="/api/relance/bulk" target="_blank">
-            <Printer className="h-4 w-4" /> Générer toutes les lettres ({groups.length})
-          </Link></Button>
+          <Button asChild variant="default">
+            <Link href="/api/relance/bulk" target="_blank">
+              <Printer className="h-4 w-4" /> Générer toutes les lettres ({groups.length})
+            </Link>
+          </Button>
         )}
       </div>
 
+      {/* KPIs globaux */}
       <div className="grid gap-4 md:grid-cols-3">
-        <Card><CardHeader><CardTitle className="text-sm text-muted-foreground">Compagnies concernées</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold">{groups.length}</div></CardContent></Card>
-        <Card><CardHeader><CardTitle className="text-sm text-muted-foreground">Factures en retard</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold">{enRetard.length}</div></CardContent></Card>
-        <Card><CardHeader><CardTitle className="text-sm text-muted-foreground">Total à recouvrer</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold text-destructive">{formatMoney(groups.reduce((s, g) => s + g.total, 0))}</div></CardContent></Card>
+        <Card><CardHeader><CardTitle className="text-sm text-muted-foreground">Compagnies à relancer</CardTitle></CardHeader>
+          <CardContent><div className="text-2xl font-bold">{groups.length}</div></CardContent></Card>
+        <Card><CardHeader><CardTitle className="text-sm text-muted-foreground">Factures en retard</CardTitle></CardHeader>
+          <CardContent><div className="text-2xl font-bold">{totalFactures}</div></CardContent></Card>
+        <Card><CardHeader><CardTitle className="text-sm text-muted-foreground">Total à recouvrer</CardTitle></CardHeader>
+          <CardContent><div className="text-2xl font-bold text-destructive">{formatMoney(totalAll)}</div></CardContent></Card>
       </div>
 
-      {groups.map((g) => {
+      {/* Liste déroulante pour choisir la compagnie */}
+      {groups.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Choisir une compagnie</CardTitle>
+            <CardDescription>Sélectionnez la compagnie à relancer dans la liste</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form action="/relances" className="flex flex-wrap gap-2">
+              <select
+                name="cie"
+                defaultValue={selectedId ?? ""}
+                className="h-10 flex-1 min-w-64 rounded-md border border-input bg-background px-3 text-sm"
+              >
+                <option value="">— Choisir une compagnie —</option>
+                {groups.map((g) => (
+                  <option key={g.assurance.id} value={g.assurance.id}>
+                    {g.assurance.nom} — {g.factures.length} facture(s) — {formatMoney(g.total)}
+                  </option>
+                ))}
+              </select>
+              <Button type="submit">Afficher</Button>
+              {selectedId && (
+                <Button asChild variant="ghost"><Link href="/relances">Réinitialiser</Link></Button>
+              )}
+            </form>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Détail de la compagnie sélectionnée */}
+      {selectedGroup && (() => {
+        const g = selectedGroup;
         const critique = g.factures.some((f) => f.date_facture <= limit60j);
         return (
-          <Card key={g.assurance.id}>
+          <Card>
             <CardHeader>
               <div className="flex items-start justify-between flex-wrap gap-3">
                 <div>
@@ -75,7 +122,11 @@ export default async function RelancesPage() {
                   </CardDescription>
                 </div>
                 <div className="flex gap-2">
-                  <Button asChild variant="outline"><Link href={`/api/relance/${g.assurance.id}`} target="_blank"><FileText className="h-4 w-4" /> Lettre imprimable</Link></Button>
+                  <Button asChild variant="outline">
+                    <Link href={`/api/relance/${g.assurance.id}`} target="_blank">
+                      <FileText className="h-4 w-4" /> Lettre imprimable
+                    </Link>
+                  </Button>
                   {g.assurance.email && (
                     <Button asChild>
                       <a href={`mailto:${g.assurance.email}?subject=${encodeURIComponent(`Relance factures — ${g.factures.length} en attente`)}&body=${encodeURIComponent(`Bonjour,\n\nNous vous informons que ${g.factures.length} facture(s) restent en attente de règlement pour un total de ${formatMoney(g.total)}.\n\nMerci de bien vouloir procéder au règlement dans les meilleurs délais.\n\nCordialement,`)}`}>
@@ -88,11 +139,20 @@ export default async function RelancesPage() {
             </CardHeader>
             <CardContent>
               <Table>
-                <THead><TR><TH>Date</TH><TH>N°</TH><TH className="text-right">Assureur</TH><TH className="text-right">Payé</TH><TH className="text-right">Reste</TH><TH>Ancienneté</TH></TR></THead>
+                <THead>
+                  <TR>
+                    <TH>Date</TH><TH>N°</TH>
+                    <TH className="text-right">Assureur</TH>
+                    <TH className="text-right">Payé</TH>
+                    <TH className="text-right">Reste</TH>
+                    <TH>Ancienneté</TH>
+                  </TR>
+                </THead>
                 <TBody>
-                  {g.factures.slice(0, 8).map((f) => {
+                  {g.factures.map((f) => {
                     const jours = Math.floor((now.getTime() - f.date_facture.getTime()) / 86400_000);
                     const reste = (f.part_assureur ?? 0) - (f.part_assureur_payee ?? 0);
+                    const critiqueLine = f.date_facture <= limit60j;
                     return (
                       <TR key={f.id}>
                         <TD>{formatDate(f.date_facture)}</TD>
@@ -100,20 +160,33 @@ export default async function RelancesPage() {
                         <TD className="text-right">{formatMoney(f.part_assureur)}</TD>
                         <TD className="text-right">{formatMoney(f.part_assureur_payee)}</TD>
                         <TD className="text-right font-semibold text-destructive">{formatMoney(reste)}</TD>
-                        <TD className="text-sm text-muted-foreground">{jours} jours</TD>
+                        <TD>
+                          <Badge variant={critiqueLine ? "destructive" : "warning"}>
+                            {jours} jours
+                          </Badge>
+                        </TD>
                       </TR>
                     );
                   })}
                 </TBody>
               </Table>
-              {g.factures.length > 8 && <p className="text-xs text-muted-foreground mt-2">Et {g.factures.length - 8} autres factures…</p>}
             </CardContent>
           </Card>
         );
-      })}
+      })()}
 
+      {/* Message quand aucune compagnie sélectionnée */}
+      {!selectedGroup && groups.length > 0 && (
+        <Card><CardContent className="p-8 text-center text-muted-foreground">
+          👆 Choisissez une compagnie dans la liste ci-dessus pour voir ses factures en retard
+        </CardContent></Card>
+      )}
+
+      {/* Message si tout est OK */}
       {groups.length === 0 && (
-        <Card><CardContent className="p-8 text-center text-muted-foreground">Aucune facture en retard. 🎉</CardContent></Card>
+        <Card><CardContent className="p-8 text-center text-muted-foreground">
+          🎉 Aucune facture en retard. Toutes les compagnies sont à jour.
+        </CardContent></Card>
       )}
     </div>
   );
