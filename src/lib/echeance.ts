@@ -14,8 +14,15 @@ export function computeEcheance(f: {
   part_assureur: number | null;
 }): EcheanceState {
   const statut = f.statut_part_assureur ?? "";
-  if (["Soldé", "Rejeté", "N/A"].includes(statut) || (f.part_assureur ?? 0) === 0) {
-    return { code: "clos", label: "Clos / Non applicable", emoji: "✅", color: "outline" };
+  // Facture cash (pas d'assureur) = déjà encaissée à la caisse
+  if (statut === "N/A" || (f.part_assureur ?? 0) === 0) {
+    return { code: "clos", label: "Payée cash", emoji: "💰", color: "success" };
+  }
+  if (statut === "Soldé") {
+    return { code: "clos", label: "Soldée", emoji: "✅", color: "success" };
+  }
+  if (statut === "Rejeté") {
+    return { code: "clos", label: "Rejetée", emoji: "❌", color: "destructive" };
   }
 
   if (!f.date_depot) {

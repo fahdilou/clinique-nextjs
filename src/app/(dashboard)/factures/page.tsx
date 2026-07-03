@@ -46,8 +46,9 @@ export default async function FacturesPage({
 
   const countMap = new Map(statCounts.map((s) => [s.statut_part_assureur ?? "?", s._count]));
   const nbTotal = statCounts.reduce((s, x) => s + x._count, 0);
-  const nbAttente = countMap.get("En attente") ?? 0;
-  const nbSolde = countMap.get("Soldé") ?? 0;
+  const nbAttente = (countMap.get("En attente") ?? 0) + (countMap.get("Payé Partiel") ?? 0);
+  // Soldées = Soldé (assurance) + N/A (cash - payée directement à la caisse)
+  const nbSolde = (countMap.get("Soldé") ?? 0) + (countMap.get("N/A") ?? 0);
   const nbRejete = countMap.get("Rejeté") ?? 0;
 
   const reste = (totals._sum.part_assureur ?? 0) - (totals._sum.part_assureur_payee ?? 0);
@@ -141,10 +142,10 @@ export default async function FacturesPage({
                   <TD>
                     <Badge variant={
                       f.statut_part_assureur === "Soldé" || f.statut_part_assureur === "Payée" ? "success" :
+                      f.statut_part_assureur === "N/A" ? "success" :
                       f.statut_part_assureur === "Payé Partiel" || f.statut_part_assureur === "Partiellement payée" ? "warning" :
-                      f.statut_part_assureur === "Rejeté" ? "destructive" :
-                      f.statut_part_assureur === "N/A" ? "default" : "outline"
-                    }>{f.statut_part_assureur}</Badge>
+                      f.statut_part_assureur === "Rejeté" ? "destructive" : "outline"
+                    }>{f.statut_part_assureur === "N/A" ? "💰 Payée cash" : f.statut_part_assureur}</Badge>
                   </TD>
                   <TD><Badge variant={ech.color}>{ech.emoji} {ech.label}</Badge></TD>
                   <TD><FactureRowActions
