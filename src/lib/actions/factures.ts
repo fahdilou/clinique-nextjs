@@ -100,9 +100,12 @@ export type EncaissementLine = {
   motif?: string | null;
 };
 
-export async function batchEncaissement(lines: EncaissementLine[]) {
+export async function batchEncaissement(lines: EncaissementLine[], dateEncaissement: string) {
   const user = await requireUser();
   if (user.role !== "admin" && !user.permissions.has("encaisser_virements")) throw new Error("Non autorisé");
+  if (!dateEncaissement) throw new Error("La date d'encaissement est obligatoire");
+  const encDate = new Date(dateEncaissement);
+  if (isNaN(encDate.getTime())) throw new Error("Date d'encaissement invalide");
 
   const factures = await prisma.facture.findMany({
     where: { id: { in: lines.map((l) => l.id) } },
@@ -122,6 +125,7 @@ export async function batchEncaissement(lines: EncaissementLine[]) {
         data: {
           part_assureur_payee: l.montant_recu,
           statut_part_assureur: statut,
+          date_encaissement: encDate,
           motif_ecart_assurance: statut === "Soldé" ? null : (l.motif || null),
         },
       });
@@ -141,9 +145,12 @@ export async function batchUpdateDepot(ids: number[], date_depot: string) {
   revalidatePath("/factures");
 }
 
-export async function updateFacturePayment(id: number, montantPaye: number) {
+export async function updateFacturePayment(id: number, montantPaye: number, dateEncaissement: string) {
   const user = await requireUser();
   if (user.role !== "admin" && !user.permissions.has("encaisser_virements")) throw new Error("Non autorisé");
+  if (!dateEncaissement) throw new Error("La date d'encaissement est obligatoire");
+  const encDate = new Date(dateEncaissement);
+  if (isNaN(encDate.getTime())) throw new Error("Date d'encaissement invalide");
   const f = await prisma.facture.findUnique({ where: { id } });
   if (!f) throw new Error("Facture introuvable");
   const partAss = f.part_assureur ?? 0;
@@ -153,7 +160,11 @@ export async function updateFacturePayment(id: number, montantPaye: number) {
   else if (montantPaye === 0) statut = "En attente";
   await prisma.facture.update({
     where: { id },
-    data: { part_assureur_payee: montantPaye, statut_part_assureur: statut },
+    data: {
+      part_assureur_payee: montantPaye,
+      statut_part_assureur: statut,
+      date_encaissement: encDate,
+    },
   });
   revalidatePath("/factures");
 }
@@ -210,6 +221,7 @@ export async function resetPaiementBanque(id: number, motif?: string) {
     data: {
       part_assureur_payee: 0,
       statut_part_assureur: "En attente",
+      date_encaissement: null,
       motif_ecart_assurance: motif || null,
     },
   });

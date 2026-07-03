@@ -75,6 +75,7 @@ model Facture {
   statut_part_assure      String?   @default("Payée par Caisse") @db.VarChar(50)
   statut_part_assureur    String?   @default("En attente") @db.VarChar(50)
   date_depot              DateTime? @db.Date
+  date_encaissement       DateTime? @db.Date
   motif_ecart_assurance   String?   @db.VarChar(255)
 
   assurance Assurance? @relation(fields: [assurance_id], references: [id])

@@ -30,6 +30,7 @@ export function FactureRowActions({
 }) {
   const [editing, setEditing] = useState<"encaisse" | "full" | null>(null);
   const [amount, setAmount] = useState(facture.part_assureur_payee);
+  const [dateEnc, setDateEnc] = useState(toISODate(new Date()));
   const [pending, start] = useTransition();
 
   // État form édition full
@@ -69,9 +70,13 @@ export function FactureRowActions({
     <div className="flex items-center gap-1 justify-end">
       {editing === "encaisse" ? (
         <div className="flex items-center gap-1">
-          <Input type="number" value={amount} onChange={(e) => setAmount(Number(e.target.value))} className="h-8 w-24" />
-          <Button size="sm" variant="success" disabled={pending}
-            onClick={() => start(async () => { await updateFacturePayment(facture.id, amount); setEditing(null); })}>OK</Button>
+          <Input type="number" value={amount} onChange={(e) => setAmount(Number(e.target.value))} className="h-8 w-24" placeholder="Montant" />
+          <Input type="date" value={dateEnc} onChange={(e) => setDateEnc(e.target.value)} className="h-8 w-36" title="Date encaissement" />
+          <Button size="sm" variant="success" disabled={pending || !dateEnc}
+            onClick={() => start(async () => {
+              try { await updateFacturePayment(facture.id, amount, dateEnc); setEditing(null); }
+              catch (e: any) { alert(e.message); }
+            })}>OK</Button>
           <Button size="sm" variant="ghost" onClick={() => setEditing(null)}>×</Button>
         </div>
       ) : (

@@ -122,6 +122,7 @@ export default async function FacturesPage({
                 <TH className="text-right">Caisse</TH>
                 <TH className="text-right">Assureur</TH>
                 <TH className="text-right">Payé Ass.</TH>
+                <TH>Encaissé le</TH>
                 <TH>Statut</TH>
                 <TH>Échéance</TH>
                 <TH></TH>
@@ -139,6 +140,7 @@ export default async function FacturesPage({
                   <TD className="text-right text-success">{formatMoney(f.part_assure)}</TD>
                   <TD className="text-right">{formatMoney(f.part_assureur)}</TD>
                   <TD className="text-right text-success">{formatMoney(f.part_assureur_payee)}</TD>
+                  <TD className="text-sm text-muted-foreground">{f.date_encaissement ? formatDate(f.date_encaissement) : "-"}</TD>
                   <TD>
                     <Badge variant={
                       f.statut_part_assureur === "Soldé" || f.statut_part_assureur === "Payée" ? "success" :
@@ -162,7 +164,7 @@ export default async function FacturesPage({
                 );
               })}
               {factures.length === 0 && (
-                <TR><TD colSpan={10} className="text-center py-8 text-muted-foreground">Aucune facture</TD></TR>
+                <TR><TD colSpan={11} className="text-center py-8 text-muted-foreground">Aucune facture</TD></TR>
               )}
             </TBody>
           </Table>
